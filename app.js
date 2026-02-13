@@ -1,50 +1,62 @@
-const { createClient } = supabase;
+// ---------- tiny helpers to avoid "null.addEventListener" crashes ----------
+function $(id) { return document.getElementById(id); }
+function on(el, evt, fn) { if (el) el.addEventListener(evt, fn); }
+function show(el) { if (el) el.classList.remove("is-hidden"); }
+function hide(el) { if (el) el.classList.add("is-hidden"); }
+function has(el) { return !!el; }
+
+// ---------- Supabase init ----------
+if (!window.supabase) {
+  console.error("Supabase CDN not loaded. Make sure supabase-js script is before app.js");
+}
+const { createClient } = window.supabase ?? {};
 const SUPABASE_URL = "https://cyhbpzqpcoavvtooyybr.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_0P0QzheZiRmxrZueraw_Ng_k2ua0Af-";
-const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0P0QzheZiRmxrZueraw_Ng_k2ua0Af-";
+const db = createClient ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 
-// DOM - posts
-const newPostBtn = document.getElementById("newPostBtn");
-const postForm = document.getElementById("postForm");
-const cancelPost = document.getElementById("cancelPost");
-const feed = document.getElementById("feed");
-const postTitle = document.getElementById("postTitle");
-const postBody = document.getElementById("postBody");
+// ---------- DOM ----------
+const newPostBtn = $("newPostBtn");
+const postForm = $("postForm");
+const cancelPost = $("cancelPost");
+const feed = $("feed");
+const postTitle = $("postTitle");
+const postBody = $("postBody");
 
-// DOM - report modal
-const modal = document.getElementById("modal");
-const modalClose = document.getElementById("modalClose");
+// report modal
+const reportModal = $("modal");
+const reportClose = $("modalClose");
 
-// DOM - auth buttons in header
-const openLogin = document.getElementById("openLogin");
-const openSignup = document.getElementById("openSignup");
+// header auth buttons
+const openLogin = $("openLogin");
+const openSignup = $("openSignup");
 
-// DOM - auth modal + forms
-const authModal = document.getElementById("authModal");
-const authStatusText = document.getElementById("authStatusText");
-const logoutBtn = document.getElementById("logoutBtn");
+// auth modal + forms
+const authModal = $("authModal");
+const authStatusText = $("authStatusText");
+const logoutBtn = $("logoutBtn");
 
-const loginForm = document.getElementById("loginForm");
-const loginEmail = document.getElementById("loginEmail");
-const loginPass = document.getElementById("loginPass");
+const loginForm = $("loginForm");
+const loginEmail = $("loginEmail");
+const loginPass = $("loginPass");
 
-const signupForm = document.getElementById("signupForm");
-const signupEmail = document.getElementById("signupEmail");
-const signupUser = document.getElementById("signupUser");
-const signupPass = document.getElementById("signupPass");
+const signupForm = $("signupForm");
+const signupEmail = $("signupEmail");
+const signupUser = $("signupUser");
+const signupPass = $("signupPass");
 
-const setUserForm = document.getElementById("setUserForm");
-const setUserInput = document.getElementById("setUserInput");
+const setUserForm = $("setUserForm");
+const setUserInput = $("setUserInput");
 
-document.getElementById("authClose1").addEventListener("click", hideAuthModal);
-document.getElementById("authClose2").addEventListener("click", hideAuthModal);
-document.getElementById("authClose3").addEventListener("click", hideAuthModal);
+// close buttons (may not exist if you didn’t paste them)
+const authClose1 = $("authClose1");
+const authClose2 = $("authClose2");
+const authClose3 = $("authClose3");
 
-// State
+// ---------- state ----------
 let currentUser = null;
 let currentProfile = null;
 
-// Helpers
+// ---------- helpers ----------
 function escapeHtml(str) {
   return String(str ?? "")
     .replaceAll("&", "&amp;")
@@ -54,84 +66,43 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
-function normalizeUsername(u) {
-  return u.trim().toLowerCase();
-}
-function validateUsername(u) {
-  return /^[a-z0-9_]{3,20}$/.test(u);
-}
+function normalizeUsername(u) { return u.trim().toLowerCase(); }
+function validateUsername(u) { return /^[a-z0-9_]{3,20}$/.test(u); }
 
-function showForm() {
-  postForm.classList.remove("is-hidden");
-  postTitle.focus();
-}
-function hideForm() {
-  postForm.classList.add("is-hidden");
-  postForm.reset();
-}
+function showComposer() { show(postForm); postTitle?.focus(); }
+function hideComposer() { hide(postForm); postForm?.reset(); }
 
-function showModal() {
-  modal.classList.remove("is-hidden");
-}
-function hideModal() {
-  modal.classList.add("is-hidden");
-}
+function showReportModal() { show(reportModal); }
+function hideReportModal() { hide(reportModal); }
 
-// Auth modal controls
 function showAuthModal(which) {
-  authModal.classList.remove("is-hidden");
-  loginForm.classList.add("is-hidden");
-  signupForm.classList.add("is-hidden");
-  setUserForm.classList.add("is-hidden");
-
-  if (which === "login") loginForm.classList.remove("is-hidden");
-  if (which === "signup") signupForm.classList.remove("is-hidden");
-  if (which === "setuser") setUserForm.classList.remove("is-hidden");
+  show(authModal);
+  hide(loginForm); hide(signupForm); hide(setUserForm);
+  if (which === "login") show(loginForm);
+  if (which === "signup") show(signupForm);
+  if (which === "setuser") show(setUserForm);
 }
-
-function hideAuthModal() {
-  authModal.classList.add("is-hidden");
-}
-
-authModal.addEventListener("click", (e) => {
-  if (e.target?.dataset?.close === "true") hideAuthModal();
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    if (!modal.classList.contains("is-hidden")) hideModal();
-    if (!authModal.classList.contains("is-hidden")) hideAuthModal();
-  }
-});
+function hideAuthModal() { hide(authModal); }
 
 function setAuthStatusUI() {
   const hasUser = !!currentUser;
   const uname = currentProfile?.username;
 
-  authStatusText.textContent = hasUser
-    ? `logged in as ${uname ?? "??"}`
-    : "not logged in";
-
-  logoutBtn.classList.toggle("is-hidden", !hasUser);
+  if (authStatusText) {
+    authStatusText.textContent = hasUser ? `logged in as ${uname ?? "??"}` : "not logged in";
+  }
+  if (logoutBtn) logoutBtn.classList.toggle("is-hidden", !hasUser);
 }
 
-// Data
+// ---------- data ----------
 async function loadProfile() {
-  if (!currentUser) {
-    currentProfile = null;
-    return;
-  }
+  if (!db || !currentUser) { currentProfile = null; return; }
   const { data, error } = await db
     .from("profiles")
     .select("user_id, username")
     .eq("user_id", currentUser.id)
     .maybeSingle();
-
-  if (error) {
-    console.error(error);
-    currentProfile = null;
-    return;
-  }
+  if (error) { console.error(error); currentProfile = null; return; }
   currentProfile = data ?? null;
 }
 
@@ -157,6 +128,7 @@ function makePostHtml(row) {
 }
 
 async function loadAndRender() {
+  if (!db || !feed) return;
   const { data, error } = await db
     .from("posts")
     .select("id,title,body,created_at,user_id,profiles(username)")
@@ -167,12 +139,12 @@ async function loadAndRender() {
     feed.innerHTML = `<div style="padding:10px;border:1px solid var(--border);background:var(--panel);">Backend error: ${escapeHtml(error.message)}</div>`;
     return;
   }
-
   feed.innerHTML = data.map(makePostHtml).join("");
 }
 
-// Init
+// ---------- init ----------
 (async function init() {
+  if (!db) return;
   const { data } = await db.auth.getUser();
   currentUser = data?.user ?? null;
   await loadProfile();
@@ -180,45 +152,63 @@ async function loadAndRender() {
   await loadAndRender();
 })();
 
-db.auth.onAuthStateChange(async (_event, session) => {
-  currentUser = session?.user ?? null;
-  await loadProfile();
+if (db) {
+  db.auth.onAuthStateChange(async (_event, session) => {
+    currentUser = session?.user ?? null;
+    await loadProfile();
+    setAuthStatusUI();
+    await loadAndRender();
+  });
+}
+
+// ---------- wire UI events ----------
+on(openLogin, "click", () => showAuthModal("login"));
+on(openSignup, "click", () => showAuthModal("signup"));
+
+on(authClose1, "click", hideAuthModal);
+on(authClose2, "click", hideAuthModal);
+on(authClose3, "click", hideAuthModal);
+
+on(authModal, "click", (e) => { if (e.target?.dataset?.close === "true") hideAuthModal(); });
+on(reportModal, "click", (e) => { if (e.target?.dataset?.close === "true") hideReportModal(); });
+
+on(reportClose, "click", hideReportModal);
+on(logoutBtn, "click", async () => {
+  if (!db) return;
+  const { error } = await db.auth.signOut();
+  if (error) { alert(`Logout failed: ${error.message}`); return; }
+  currentUser = null;
+  currentProfile = null;
   setAuthStatusUI();
+  hideAuthModal();
   await loadAndRender();
 });
 
-// Header buttons
-openLogin.addEventListener("click", () => showAuthModal("login"));
-openSignup.addEventListener("click", () => showAuthModal("signup"));
-
-// Auth submit handlers
-loginForm.addEventListener("submit", async (e) => {
+on(loginForm, "submit", async (e) => {
   e.preventDefault();
-  const email = loginEmail.value.trim();
-  const password = loginPass.value;
+  if (!db) return;
+  const email = loginEmail?.value.trim();
+  const password = loginPass?.value;
   if (!email || !password) return;
 
   const { data, error } = await db.auth.signInWithPassword({ email, password });
-  if (error) {
-    alert(`Login failed: ${error.message}`);
-    return;
-  }
+  if (error) { alert(`Login failed: ${error.message}`); return; }
 
   currentUser = data.user;
   await loadProfile();
   setAuthStatusUI();
-
   if (!currentProfile?.username) showAuthModal("setuser");
   else hideAuthModal();
-
   await loadAndRender();
 });
 
-signupForm.addEventListener("submit", async (e) => {
+on(signupForm, "submit", async (e) => {
   e.preventDefault();
-  const email = signupEmail.value.trim();
-  const password = signupPass.value;
-  const username = normalizeUsername(signupUser.value);
+  if (!db) return;
+
+  const email = signupEmail?.value.trim();
+  const password = signupPass?.value;
+  const username = normalizeUsername(signupUser?.value ?? "");
 
   if (!email || !password) return;
   if (!validateUsername(username)) {
@@ -227,18 +217,13 @@ signupForm.addEventListener("submit", async (e) => {
   }
 
   const { data, error } = await db.auth.signUp({ email, password });
-  if (error) {
-    alert(`Sign up failed: ${error.message}`);
-    return;
-  }
+  if (error) { alert(`Sign up failed: ${error.message}`); return; }
 
   currentUser = data.user;
 
-  // create profile
   const ins = await db.from("profiles").insert([{ user_id: currentUser.id, username }]);
   if (ins.error) {
     alert(`Username error: ${ins.error.message}`);
-    // user is signed up/logged in; prompt to set a different username
     showAuthModal("setuser");
   } else {
     await loadProfile();
@@ -249,31 +234,20 @@ signupForm.addEventListener("submit", async (e) => {
   await loadAndRender();
 });
 
-setUserForm.addEventListener("submit", async (e) => {
+on(setUserForm, "submit", async (e) => {
   e.preventDefault();
-  if (!currentUser) return;
+  if (!db || !currentUser) return;
 
-  const username = normalizeUsername(setUserInput.value);
+  const username = normalizeUsername(setUserInput?.value ?? "");
   if (!validateUsername(username)) {
     alert("Username must be 3-20 chars: a-z, 0-9, underscore.");
     return;
   }
 
-  // insert or update
-  const ins = await db
-    .from("profiles")
-    .insert([{ user_id: currentUser.id, username }]);
-
+  const ins = await db.from("profiles").insert([{ user_id: currentUser.id, username }]);
   if (ins.error) {
-    const upd = await db
-      .from("profiles")
-      .update({ username })
-      .eq("user_id", currentUser.id);
-
-    if (upd.error) {
-      alert(`Username error: ${upd.error.message}`);
-      return;
-    }
+    const upd = await db.from("profiles").update({ username }).eq("user_id", currentUser.id);
+    if (upd.error) { alert(`Username error: ${upd.error.message}`); return; }
   }
 
   await loadProfile();
@@ -282,81 +256,46 @@ setUserForm.addEventListener("submit", async (e) => {
   await loadAndRender();
 });
 
-logoutBtn.addEventListener("click", async () => {
-  const { error } = await db.auth.signOut();
-  if (error) {
-    alert(`Logout failed: ${error.message}`);
-    return;
-  }
-  currentUser = null;
-  currentProfile = null;
-  setAuthStatusUI();
-  hideAuthModal();
-  await loadAndRender();
+// Composer
+on(newPostBtn, "click", (e) => {
+  e.preventDefault();
+  if (!currentUser) { showAuthModal("login"); return; }
+  if (!currentProfile?.username) { showAuthModal("setuser"); return; }
+  if (postForm?.classList.contains("is-hidden")) showComposer();
+  else hideComposer();
 });
 
-// Subheader new post: requires auth + username
-newPostBtn.addEventListener("click", (e) => {
+on(cancelPost, "click", hideComposer);
+
+on(postForm, "submit", async (e) => {
   e.preventDefault();
-  if (!currentUser) {
-    showAuthModal("login");
-    return;
-  }
-  if (!currentProfile?.username) {
-    showAuthModal("setuser");
-    return;
-  }
-  if (postForm.classList.contains("is-hidden")) showForm();
-  else hideForm();
-});
+  if (!db || !currentUser) return;
 
-cancelPost.addEventListener("click", () => hideForm());
-
-// Create post
-postForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  if (!currentUser) return;
-
-  const title = postTitle.value.trim();
-  const body = postBody.value.trim();
+  const title = postTitle?.value.trim();
+  const body = postBody?.value.trim();
   if (!title || !body) return;
 
   const { error } = await db.from("posts").insert([{ title, body }]);
-  if (error) {
-    alert(`Post failed: ${error.message}`);
-    return;
-  }
+  if (error) { alert(`Post failed: ${error.message}`); return; }
 
-  hideForm();
+  hideComposer();
   await loadAndRender();
 });
 
-// Report modal
-modalClose.addEventListener("click", hideModal);
-modal.addEventListener("click", (e) => {
-  if (e.target?.dataset?.close === "true") hideModal();
-});
-
-// Post actions
-feed.addEventListener("click", async (e) => {
+// Feed actions
+on(feed, "click", async (e) => {
   const reportBtn = e.target.closest(".action.report");
   const deleteBtn = e.target.closest(".action.delete");
 
-  if (reportBtn) {
-    showModal();
-    return;
-  }
+  if (reportBtn) { showReportModal(); return; }
 
   if (deleteBtn) {
     const postEl = e.target.closest(".post");
     const id = postEl?.dataset?.id;
-    if (!id) return;
+    if (!id || !db) return;
 
     const { error } = await db.from("posts").delete().eq("id", id);
-    if (error) {
-      alert(`Delete failed: ${error.message}`);
-      return;
-    }
+    if (error) { alert(`Delete failed: ${error.message}`); return; }
     postEl.remove();
   }
 });
