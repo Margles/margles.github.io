@@ -1,11 +1,8 @@
-console.log("app.js loaded");
-
 // ---------- tiny helpers to avoid "null.addEventListener" crashes ----------
 function $(id) { return document.getElementById(id); }
 function on(el, evt, fn) { if (el) el.addEventListener(evt, fn); }
 function show(el) { if (el) el.classList.remove("is-hidden"); }
 function hide(el) { if (el) el.classList.add("is-hidden"); }
-function has(el) { return !!el; }
 
 // ---------- Supabase init ----------
 if (!window.supabase) {
@@ -13,10 +10,12 @@ if (!window.supabase) {
 }
 const { createClient } = window.supabase ?? {};
 const SUPABASE_URL = "https://cyhbpzqpcoavvtooyybr.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5aGJwenFwY29hdnZ0b295eWJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ3MDYsImV4cCI6MjA4NjUzMDcwNn0.ZyLL4whcMMltYI1CiwqoBykka7d9WDhij3Ad48jmAWk";
+const SUPABASE_PUBLISHABLE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5aGJwenFwY29hdnZ0b295eWJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ3MDYsImV4cCI6MjA4NjUzMDcwNn0.ZyLL4whcMMltYI1CiwqoBykka7d9WDhij3Ad48jmAWk";
 const db = createClient ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 
 // ---------- DOM ----------
+// posts/composer
 const newPostBtn = $("newPostBtn");
 const postForm = $("postForm");
 const cancelPost = $("cancelPost");
@@ -28,9 +27,10 @@ const postBody = $("postBody");
 const reportModal = $("modal");
 const reportClose = $("modalClose");
 
-// header auth buttons
+// header auth buttons + status
 const openLogin = $("openLogin");
 const openSignup = $("openSignup");
+const navStatus = $("navStatus");
 
 // auth modal + forms
 const authModal = $("authModal");
@@ -49,7 +49,7 @@ const signupPass = $("signupPass");
 const setUserForm = $("setUserForm");
 const setUserInput = $("setUserInput");
 
-// close buttons (may not exist if you didn’t paste them)
+// close buttons
 const authClose1 = $("authClose1");
 const authClose2 = $("authClose2");
 const authClose3 = $("authClose3");
@@ -90,8 +90,13 @@ function setAuthStatusUI() {
   const hasUser = !!currentUser;
   const uname = currentProfile?.username;
 
+  const msg = hasUser ? `logged in as ${uname ?? "??"}` : "";
+
   if (authStatusText) {
     authStatusText.textContent = hasUser ? `logged in as ${uname ?? "??"}` : "not logged in";
+  }
+  if (navStatus) {
+    navStatus.textContent = msg;
   }
   if (logoutBtn) logoutBtn.classList.toggle("is-hidden", !hasUser);
 }
@@ -115,7 +120,6 @@ function makePostHtml(row) {
 
   return `
     <article class="post" data-id="${row.id}">
-      <div class="score">▲<br /><span>1</span><br />▼</div>
       <div class="content">
         <h2 class="title">${escapeHtml(row.title)}</h2>
         <div class="meta">posted by <span class="user">${escapeHtml(username)}</span> • ${escapeHtml(when)}</div>
@@ -164,17 +168,22 @@ if (db) {
 }
 
 // ---------- wire UI events ----------
+// header buttons
 on(openLogin, "click", () => showAuthModal("login"));
 on(openSignup, "click", () => showAuthModal("signup"));
 
+// close auth modal
 on(authClose1, "click", hideAuthModal);
 on(authClose2, "click", hideAuthModal);
 on(authClose3, "click", hideAuthModal);
 
 on(authModal, "click", (e) => { if (e.target?.dataset?.close === "true") hideAuthModal(); });
-on(reportModal, "click", (e) => { if (e.target?.dataset?.close === "true") hideReportModal(); });
 
+// report modal close
+on(reportModal, "click", (e) => { if (e.target?.dataset?.close === "true") hideReportModal(); });
 on(reportClose, "click", hideReportModal);
+
+// logout (in auth modal)
 on(logoutBtn, "click", async () => {
   if (!db) return;
   const { error } = await db.auth.signOut();
@@ -186,6 +195,7 @@ on(logoutBtn, "click", async () => {
   await loadAndRender();
 });
 
+// login
 on(loginForm, "submit", async (e) => {
   e.preventDefault();
   if (!db) return;
@@ -204,6 +214,7 @@ on(loginForm, "submit", async (e) => {
   await loadAndRender();
 });
 
+// signup
 on(signupForm, "submit", async (e) => {
   e.preventDefault();
   if (!db) return;
@@ -236,6 +247,7 @@ on(signupForm, "submit", async (e) => {
   await loadAndRender();
 });
 
+// set username (for users missing a profile or with taken username)
 on(setUserForm, "submit", async (e) => {
   e.preventDefault();
   if (!db || !currentUser) return;
