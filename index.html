@@ -16,8 +16,10 @@
         </div>
 
         <nav class="nav">
-          <a href="#" aria-disabled="true">Log in (soon)</a>
+          <button class="navbtn" id="openLogin" type="button">log in</button>
+          <button class="navbtn" id="openSignup" type="button">sign up</button>
         </nav>
+
       </div>
     </header>
 
@@ -27,6 +29,7 @@
     <a class="newpost" href="#" id="newPostBtn">+ New post</a>
   </div>
 </section>
+
 
 <section class="composer">
   <div class="wrap">
@@ -52,6 +55,65 @@
 <main class="wrap">
   <section class="feed" id="feed"></section>
 </main>
+
+<div id="authModal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="modal-backdrop" data-close="true"></div>
+  <div class="modal-box">
+    <div class="modal-title" id="authTitle">auth</div>
+
+    <form id="loginForm" class="authform is-hidden">
+      <div class="row">
+        <label class="lbl" for="loginEmail">email</label>
+        <input id="loginEmail" type="email" autocomplete="email" required />
+      </div>
+      <div class="row">
+        <label class="lbl" for="loginPass">password</label>
+        <input id="loginPass" type="password" autocomplete="current-password" required />
+      </div>
+      <div class="composer-actions">
+        <button type="submit">log in</button>
+        <button type="button" id="authClose1">cancel</button>
+      </div>
+    </form>
+
+    <form id="signupForm" class="authform is-hidden">
+      <div class="row">
+        <label class="lbl" for="signupEmail">email</label>
+        <input id="signupEmail" type="email" autocomplete="email" required />
+      </div>
+      <div class="row">
+        <label class="lbl" for="signupUser">username</label>
+        <input id="signupUser" type="text" autocomplete="username" required />
+      </div>
+      <div class="row">
+        <label class="lbl" for="signupPass">password</label>
+        <input id="signupPass" type="password" autocomplete="new-password" required />
+      </div>
+      <div class="composer-actions">
+        <button type="submit">sign up</button>
+        <button type="button" id="authClose2">cancel</button>
+      </div>
+    </form>
+
+    <form id="setUserForm" class="authform is-hidden">
+      <p class="authnote">Pick a username to post.</p>
+      <div class="row">
+        <label class="lbl" for="setUserInput">username</label>
+        <input id="setUserInput" type="text" autocomplete="username" required />
+      </div>
+      <div class="composer-actions">
+        <button type="submit">set username</button>
+        <button type="button" id="authClose3">cancel</button>
+      </div>
+    </form>
+
+    <div class="authstatus">
+      <span id="authStatusText">not logged in</span>
+      <button id="logoutBtn" type="button" class="navbtn is-hidden">log out</button>
+    </div>
+  </div>
+</div>
+
 
 <div id="modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal-backdrop" data-close="true"></div>
