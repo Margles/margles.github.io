@@ -1,12 +1,65 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>wetboiz</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
+
   <body>
-    <h1>wetboiz.com</h1>
-    <p>Test change.</p>
-  </body>
-</html>
+    <header class="topbar">
+      <div class="wrap">
+        <div class="brand">
+          <a class="logo" href="/">wetboiz.com</a>
+          <span class="tagline">it's reddit, but wetter</span>
+        </div>
+
+        <nav class="nav">
+          <a href="#" aria-disabled="true">Log in (soon)</a>
+        </nav>
+      </div>
+    </header>
+
+<section class="subheader">
+  <div class="wrap subheader-inner">
+    <h1>News for boiz</h1>
+    <a class="newpost" href="#" id="newPostBtn">+ New post</a>
+  </div>
+</section>
+
+<section class="composer">
+  <div class="wrap">
+    <form id="postForm" class="composer-form is-hidden">
+      <div class="row">
+        <label class="lbl" for="postTitle">title</label>
+        <input id="postTitle" name="title" type="text" maxlength="120" required />
+      </div>
+
+      <div class="row">
+        <label class="lbl" for="postBody">text</label>
+        <textarea id="postBody" name="body" rows="4" maxlength="2000" required></textarea>
+      </div>
+
+      <div class="composer-actions">
+        <button type="submit">post</button>
+        <button type="button" id="cancelPost">cancel</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<main class="wrap">
+  <section class="feed" id="feed"></section>
+</main>
+
+<div id="modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-backdrop" data-close="true"></div>
+  <div class="modal-box">
+    <div id="modalTitle" class="modal-title">report</div>
+    <p class="modal-text">don't be a pussy</p>
+    <button id="modalClose" class="modal-btn" type="button">ok</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
