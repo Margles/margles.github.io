@@ -1,3 +1,10 @@
+// 1) Supabase init (CDN exposes a global `supabase`)
+const { createClient } = supabase; // from the CDN script
+const SUPABASE_URL = "https://cyhbpzqpcoavvtooyybr.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_0P0QzheZiRmxrZueraw_Ng_k2ua0Af-";
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 2) DOM
 const newPostBtn = document.getElementById("newPostBtn");
 const postForm = document.getElementById("postForm");
 const cancelPost = document.getElementById("cancelPost");
@@ -8,16 +15,7 @@ const postBody = document.getElementById("postBody");
 const modal = document.getElementById("modal");
 const modalClose = document.getElementById("modalClose");
 
-function showForm() {
-  postForm.classList.remove("is-hidden");
-  postTitle.focus();
-}
-
-function hideForm() {
-  postForm.classList.add("is-hidden");
-  postForm.reset();
-}
-
+// 3) UI helpers
 function escapeHtml(str) {
   return str
     .replaceAll("&", "&amp;")
@@ -27,14 +25,31 @@ function escapeHtml(str) {
     .replaceAll("'", "&#039;");
 }
 
-function makePostHtml({ title, body, user = "you", when = "just now" }) {
+function showForm() {
+  postForm.classList.remove("is-hidden");
+  postTitle.focus();
+}
+function hideForm() {
+  postForm.classList.add("is-hidden");
+  postForm.reset();
+}
+
+function showModal() {
+  modal.classList.remove("is-hidden");
+}
+function hideModal() {
+  modal.classList.add("is-hidden");
+}
+
+function makePostHtml(post) {
+  const when = new Date(post.created_at).toLocaleString();
   return `
-    <article class="post" data-owner="true">
+    <article class="post" data-id="${post.id}">
       <div class="score">▲<br /><span>1</span><br />▼</div>
       <div class="content">
-        <h2 class="title">${escapeHtml(title)}</h2>
-        <div class="meta">posted by <span class="user">${escapeHtml(user)}</span> • ${escapeHtml(when)}</div>
-        <p class="excerpt">${escapeHtml(body)}</p>
+        <h2 class="title">${escapeHtml(post.title)}</h2>
+        <div class="meta">posted • ${escapeHtml(when)}</div>
+        <p class="excerpt">${escapeHtml(post.body)}</p>
         <div class="actions">
           <button class="action delete" type="button">delete</button>
           <button class="action report" type="button">report</button>
@@ -44,7 +59,25 @@ function makePostHtml({ title, body, user = "you", when = "just now" }) {
   `;
 }
 
-/* --- New post toggle --- */
+async function loadAndRender() {
+  const { data, error } = await db
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    feed.innerHTML = `<div style="padding:10px;border:1px solid var(--border);background:var(--panel);">Backend error: ${escapeHtml(error.message)}</div>`;
+    return;
+  }
+
+  feed.innerHTML = data.map(makePostHtml).join("");
+}
+
+// 4) Init
+loadAndRender();
+
+// 5) Events
 newPostBtn.addEventListener("click", (e) => {
   e.preventDefault();
   if (postForm.classList.contains("is-hidden")) showForm();
@@ -53,31 +86,23 @@ newPostBtn.addEventListener("click", (e) => {
 
 cancelPost.addEventListener("click", () => hideForm());
 
-/* --- Create post --- */
-postForm.addEventListener("submit", (e) => {
+postForm.addEventListener("submit", async (e) => {
   e.preventDefault();
 
   const title = postTitle.value.trim();
   const body = postBody.value.trim();
   if (!title || !body) return;
 
-  const wrapper = document.createElement("div");
-  wrapper.innerHTML = makePostHtml({ title, body });
-  const newPost = wrapper.firstElementChild;
+  const { error } = await db.from("posts").insert([{ title, body }]);
+  if (error) {
+    console.error(error);
+    alert(`Post failed: ${error.message}`);
+    return;
+  }
 
-  feed.prepend(newPost);
   hideForm();
-  newPost.scrollIntoView({ behavior: "smooth", block: "start" });
+  await loadAndRender();
 });
-
-/* --- Modal --- */
-function showModal() {
-  modal.classList.remove("is-hidden");
-}
-
-function hideModal() {
-  modal.classList.add("is-hidden");
-}
 
 modalClose.addEventListener("click", hideModal);
 modal.addEventListener("click", (e) => {
@@ -87,8 +112,8 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !modal.classList.contains("is-hidden")) hideModal();
 });
 
-/* --- Actions: delete/report --- */
-feed.addEventListener("click", (e) => {
+// Delegate actions
+feed.addEventListener("click", async (e) => {
   const reportBtn = e.target.closest(".action.report");
   const deleteBtn = e.target.closest(".action.delete");
 
@@ -98,9 +123,18 @@ feed.addEventListener("click", (e) => {
   }
 
   if (deleteBtn) {
-    const post = e.target.closest(".post");
-    const isOwner = post?.dataset?.owner === "true";
-    if (!isOwner) return;
-    post.remove();
+    const postEl = e.target.closest(".post");
+    const id = postEl?.dataset?.id;
+    if (!id) return;
+
+    // TEMP: this works only because we allowed anon delete in RLS
+    const { error } = await db.from("posts").delete().eq("id", id);
+    if (error) {
+      console.error(error);
+      alert(`Delete failed: ${error.message}`);
+      return;
+    }
+
+    postEl.remove();
   }
 });
