@@ -1,3 +1,5 @@
+console.log("app.js loaded");
+
 // ---------- tiny helpers to avoid "null.addEventListener" crashes ----------
 function $(id) { return document.getElementById(id); }
 function on(el, evt, fn) { if (el) el.addEventListener(evt, fn); }
@@ -11,7 +13,7 @@ if (!window.supabase) {
 }
 const { createClient } = window.supabase ?? {};
 const SUPABASE_URL = "https://cyhbpzqpcoavvtooyybr.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_0P0QzheZiRmxrZueraw_Ng_k2ua0Af-";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5aGJwenFwY29hdnZ0b295eWJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5NTQ3MDYsImV4cCI6MjA4NjUzMDcwNn0.ZyLL4whcMMltYI1CiwqoBykka7d9WDhij3Ad48jmAWk";
 const db = createClient ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 
 // ---------- DOM ----------
